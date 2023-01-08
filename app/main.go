@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	// Available if you need it!
 	// "github.com/pingcap/parser"
 	// "github.com/pingcap/parser/ast"
@@ -27,8 +28,7 @@ func main() {
 		// https://www.sqlite.org/fileformat.html#the_database_header
 		header := make([]byte, 100)
 
-		_, err = databaseFile.Read(header)
-		if err != nil {
+		if _, err := databaseFile.Read(header); err != nil {
 			log.Fatal(err)
 		}
 
@@ -40,7 +40,17 @@ func main() {
 			return
 		}
 
+		// Page 1 of a database file is the root page of a table b-tree that holds a special table named "sqlite_schema".
+		// https://www.sqlite.org/fileformat.html#storage_of_the_sql_database_schema
+		buffer := make([]byte, pageSize)
+		if _, err := databaseFile.Read(buffer); err != nil {
+			log.Fatal(err)
+		}
+
+		numberOfTables := strings.Count(string(buffer), "CREATE TABLE")
+
 		fmt.Printf("database page size: %v", pageSize)
+		fmt.Printf("number of tables: %v\n", numberOfTables)
 	default:
 		fmt.Println("Unknown command", command)
 		os.Exit(1)
